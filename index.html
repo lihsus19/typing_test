@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FastFinger Typing Test</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <div>
+        <h1>FastFinger</h1>
+        <p class="subtitle">Type the quote, beat the target, and track your progress.</p>
+      </div>
+
+      <div class="profile-card">
+        <label for="playerName">Player Name</label>
+        <input
+          type="text"
+          id="playerName"
+          maxlength="20"
+          placeholder="Enter your name"
+          autocomplete="off"
+        />
+      </div>
+    </header>
+
+    <section class="top-controls" aria-label="Typing options">
+      <div class="control-card">
+        <span class="control-label">Difficulty</span>
+        <div class="difficulty-buttons" role="group" aria-label="Difficulty selection">
+          <button class="difficulty-btn active" data-mode="easy" type="button">Easy</button>
+          <button class="difficulty-btn" data-mode="medium" type="button">Medium</button>
+          <button class="difficulty-btn" data-mode="hard" type="button">Hard</button>
+        </div>
+      </div>
+
+      <div class="control-card quote-info-card">
+        <div><span class="control-label">Quote Words</span> <strong id="quoteWordCount">0</strong></div>
+        <div><span class="control-label">Mode</span> <strong id="quoteMode">Easy</strong></div>
+      </div>
+    </section>
+
+    <section class="race-track" aria-label="Race progress">
+      <div class="track-line">
+        <div id="playerIcon" aria-hidden="true">🚗</div>
+        <div class="finish-flag" aria-hidden="true">🏁</div>
+      </div>
+      <div class="track-labels">
+        <span>Start</span>
+        <span>Finish</span>
+      </div>
+    </section>
+
+    <section class="typing-panel">
+      <div id="quote" aria-live="polite">Click Start to load a quote...</div>
+
+      <label class="sr-only" for="input">Typing input</label>
+      <input
+        type="text"
+        id="input"
+        placeholder="Start typing here..."
+        disabled
+        autocomplete="off"
+        spellcheck="false"
+        aria-describedby="typingHint"
+      />
+      <p id="typingHint" class="hint">Correct words clear from the input. The quote stays visible.</p>
+    </section>
+
+    <section id="stats" aria-label="Typing statistics">
+      <div class="stat-card">
+        <span class="stat-label">WPM</span>
+        <span id="wpm" class="stat-value">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Accuracy</span>
+        <span><span id="accuracy" class="stat-value">0</span>%</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Mistakes</span>
+        <span id="mistakes" class="stat-value">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Target WPM</span>
+        <span id="targetWpm" class="stat-value">40</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Best Score</span>
+        <span id="bestScore" class="stat-value">0</span>
+      </div>
+    </section>
+
+    <div id="resultMessage" aria-live="assertive"></div>
+
+    <section class="badges-section" aria-label="Achievements">
+      <h2>Badges</h2>
+      <div id="badges" class="badges-grid"></div>
+    </section>
+
+    <section class="panels-grid">
+      <div class="panel">
+        <h2>Leaderboard</h2>
+        <div id="leaderboard" class="list-panel"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Recent History</h2>
+        <div id="history" class="list-panel"></div>
+      </div>
+    </section>
+
+    <div class="buttons">
+      <button id="startBtn" type="button">Start Test</button>
+      <button id="restartBtn" type="button">Restart</button>
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
