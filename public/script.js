@@ -11,7 +11,8 @@ const resultMessageEl = document.getElementById('resultMessage');
 const playerIcon = document.getElementById('playerIcon');
 const trackLine = document.querySelector('.track-line');
 
-const playerNameEl = document.getElementById('playerName');
+const accountBtn = document.getElementById('accountBtn');
+const playerStatusEl = document.getElementById('playerStatus');
 const quoteWordCountEl = document.getElementById('quoteWordCount');
 const quoteModeEl = document.getElementById('quoteMode');
 const leaderboardEl = document.getElementById('leaderboard');
@@ -19,29 +20,20 @@ const historyEl = document.getElementById('history');
 const badgesEl = document.getElementById('badges');
 const difficultyBtns = document.querySelectorAll('.difficulty-btn');
 
-
-
-/**
- * IMPORTANT:
- * Change this if your backend runs on another port or host.
- * Example local backend:
- * http://localhost:3000
- */
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = '/api';
 
 const fallbackQuotes = [
-  "Every expert was once a beginner who kept going.",
-  "Focus on progress, not perfection, and keep moving forward.",
-  "Practice makes perfect, and consistency builds speed over time.",
-  "Small daily improvements are the key to long term results.",
-  "Success is built through patience discipline and the willingness to keep improving even when progress feels slow.",
-  "Confidence grows when you continue practicing consistently and learn from mistakes instead of giving up too early.",
-  "Real improvement comes from focused effort repeated daily until what once felt difficult becomes natural and easy."
+  'Every expert was once a beginner who kept going.',
+  'Focus on progress, not perfection, and keep moving forward.',
+  'Practice makes perfect, and consistency builds speed over time.',
+  'Small daily improvements are the key to long term results.',
+  'Success is built through patience discipline and the willingness to keep improving even when progress feels slow.',
+  'Confidence grows when you continue practicing consistently and learn from mistakes instead of giving up too early.',
+  'Real improvement comes from focused effort repeated daily until what once felt difficult becomes natural and easy.'
 ];
 
 const STORAGE_KEYS = {
   highScore: 'highScore',
-  playerName: 'fastfingerPlayerName',
   badges: 'fastfingerBadges'
 };
 
@@ -53,6 +45,7 @@ const badgeDefinitions = [
   { id: 'long_quote', name: 'Long Haul', desc: 'Complete a quote with 100+ words.' }
 ];
 
+let resultChart = null;
 let quote = '';
 let totalTyped = 0;
 let totalMistakes = 0;
@@ -75,20 +68,13 @@ async function init() {
   targetWpmEl.innerText = targetWPM;
   quoteModeEl.innerText = capitalize(currentDifficulty);
 
-  const savedName = localStorage.getItem(STORAGE_KEYS.playerName);
-  if (savedName) {
-    playerNameEl.value = savedName;
-  }
-
-  playerNameEl.addEventListener('input', async () => {
-    localStorage.setItem(STORAGE_KEYS.playerName, getPlayerName());
-    await renderLeaderboard();
-    await renderHistory();
+  accountBtn?.addEventListener('click', () => {
+    window.location.href = 'login.html';
   });
 
-  difficultyBtns.forEach(btn => {
+  difficultyBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
-      difficultyBtns.forEach(b => b.classList.remove('active'));
+      difficultyBtns.forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
 
       currentDifficulty = btn.dataset.mode;
@@ -98,9 +84,59 @@ async function init() {
     });
   });
 
+  startBtn?.addEventListener('click', startTest);
+  restartBtn?.addEventListener('click', restartTest);
+
+  inputEl?.addEventListener('input', handleTypingInput);
+  inputEl?.addEventListener('keydown', (event) => {
+    if (event.key === 'Tab') {
+      event.preventDefault();
+    }
+  });
+
+  await syncUserFromServer();
+  updatePlayerStatus();
   await renderLeaderboard();
   await renderHistory();
   renderBadges();
+}
+
+async function syncUserFromServer() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      credentials: 'include'
+    });
+
+    if (!response.ok) return;
+
+    const data = await response.json();
+
+    if (data.user) {
+      localStorage.setItem('fastfingerUser', JSON.stringify(data.user));
+    } else {
+      localStorage.removeItem('fastfingerUser');
+    }
+  } catch (error) {
+    console.error('Could not sync user:', error);
+  }
+}
+
+function getStoredUser() {
+  try {
+    return JSON.parse(localStorage.getItem('fastfingerUser'));
+  } catch {
+    return null;
+  }
+}
+
+function updatePlayerStatus() {
+  const user = getStoredUser();
+
+  if (user?.name) {
+    playerStatusEl.textContent = `Logged in as ${user.name}`;
+  } else {
+    playerStatusEl.textContent = 'Playing as Guest';
+  }
 }
 
 function capitalize(value) {
@@ -108,8 +144,8 @@ function capitalize(value) {
 }
 
 function getPlayerName() {
-  const name = playerNameEl.value.trim();
-  return name || 'Guest';
+  const user = getStoredUser();
+  return user?.name || 'Guest';
 }
 
 function getWordCount(text) {
@@ -122,8 +158,6 @@ function generateTargetWPM() {
   return Math.floor(Math.random() * 26) + 25;
 }
 
-
-
 function getRandomFallbackQuote() {
   return fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)];
 }
@@ -132,7 +166,7 @@ function buildLongFallbackQuote(minWords = 100) {
   let longQuote = '';
 
   while (getWordCount(longQuote) < minWords) {
-    longQuote += ' ' + getRandomFallbackQuote();
+    longQuote += ` ${getRandomFallbackQuote()}`;
   }
 
   return longQuote.trim();
@@ -169,12 +203,7 @@ async function fetchQuote() {
     const shouldBeLong = Math.random() < getLongChance();
     currentQuoteIsLong = shouldBeLong;
 
-    if (shouldBeLong) {
-      quote = buildLongFallbackQuote(100);
-    } else {
-      quote = getRandomFallbackQuote();
-    }
-
+    quote = shouldBeLong ? buildLongFallbackQuote(100) : getRandomFallbackQuote();
     finishQuoteSetup();
   }
 }
@@ -198,7 +227,7 @@ function renderQuote() {
 
   quoteWords.forEach((word, index) => {
     const span = document.createElement('span');
-    span.innerText = word + ' ';
+    span.innerText = `${word} `;
     span.classList.add('word');
 
     if (index < currentWordIndex) {
@@ -231,6 +260,26 @@ function resetStats() {
   inputEl.disabled = true;
 
   updatePlayerProgressByWords();
+}
+
+function startTest() {
+  const container = document.getElementById('chartContainer');
+
+  if (resultChart) {
+    resultChart.destroy();
+    resultChart = null;
+  }
+
+  if (container) {
+    container.style.display = 'none';
+  }
+
+  resetStats();
+  fetchQuote();
+}
+
+function restartTest() {
+  startTest();
 }
 
 function getCurrentInputMistakes() {
@@ -306,6 +355,7 @@ async function showResults() {
   await renderLeaderboard();
   await renderHistory();
   renderBadges();
+  createResultChart(wpm, accuracy, totalMistakes);
 }
 
 function updatePlayerProgressByWords() {
@@ -397,7 +447,7 @@ function unlockBadges(wpm, accuracy) {
 function renderBadges() {
   const unlocked = new Set(readJSON(STORAGE_KEYS.badges, []));
 
-  badgesEl.innerHTML = badgeDefinitions.map(badge => `
+  badgesEl.innerHTML = badgeDefinitions.map((badge) => `
     <div class="badge-card ${unlocked.has(badge.id) ? 'unlocked' : ''}">
       <span class="badge-name">${badge.name}</span>
       <span class="badge-desc">${badge.desc}</span>
@@ -405,15 +455,56 @@ function renderBadges() {
   `).join('');
 }
 
+function createResultChart(wpm, accuracy, mistakes) {
+  const canvas = document.getElementById('resultChart');
+  const container = document.getElementById('chartContainer');
+
+  if (!canvas || !container) return;
+
+  const ctx = canvas.getContext('2d');
+  container.style.display = 'block';
+
+  if (resultChart) {
+    resultChart.destroy();
+  }
+
+  resultChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['WPM', 'Accuracy %'],
+      datasets: [{
+        label: 'Result',
+        data: [wpm, accuracy],
+        borderWidth: 1,
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        title: {
+          display: true,
+          text: `Mistakes: ${mistakes}`
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.innerText = text;
   return div.innerHTML;
 }
-
-/* =========================
-   BACKEND FUNCTIONS
-========================= */
 
 async function saveSessionToBackend(wpm, accuracy) {
   const payload = {
@@ -431,6 +522,7 @@ async function saveSessionToBackend(wpm, accuracy) {
       headers: {
         'Content-Type': 'application/json'
       },
+      credentials: 'include',
       body: JSON.stringify(payload)
     });
 
@@ -446,7 +538,9 @@ async function saveSessionToBackend(wpm, accuracy) {
 
 async function fetchLeaderboardFromBackend() {
   try {
-    const response = await fetch(`${API_BASE_URL}/leaderboard`);
+    const response = await fetch(`${API_BASE_URL}/leaderboard`, {
+      credentials: 'include'
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch leaderboard: ${response.status}`);
@@ -459,9 +553,11 @@ async function fetchLeaderboardFromBackend() {
   }
 }
 
-async function fetchHistoryFromBackend(name) {
+async function fetchHistoryFromBackend() {
   try {
-    const response = await fetch(`${API_BASE_URL}/history/${encodeURIComponent(name)}`);
+    const response = await fetch(`${API_BASE_URL}/history/me`, {
+      credentials: 'include'
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch history: ${response.status}`);
@@ -478,99 +574,74 @@ async function renderLeaderboard() {
   const leaderboard = await fetchLeaderboardFromBackend();
 
   if (!leaderboard.length) {
-    leaderboardEl.innerHTML = '<div class="empty-state">No scores yet. Complete a test to create the leaderboard.</div>';
+    leaderboardEl.innerHTML = '<p class="empty-state">No scores yet.</p>';
     return;
   }
 
-  leaderboardEl.innerHTML = leaderboard
-    .map((entry, index) => `
-      <div class="list-item">
-        <strong>#${index + 1} ${escapeHtml(entry.name)}</strong>
-        ${entry.wpm} WPM
-        <span class="list-meta">${entry.accuracy}% accuracy • ${capitalize(entry.difficulty)} • ${entry.words} words</span>
-      </div>
-    `)
-    .join('');
+  leaderboardEl.innerHTML = leaderboard.map((entry, index) => `
+    <div class="list-row">
+      <span class="list-rank">#${index + 1}</span>
+      <span class="list-name">${escapeHtml(entry.name)}</span>
+      <span class="list-score">${entry.wpm} WPM</span>
+    </div>
+  `).join('');
 }
 
 async function renderHistory() {
-  const name = getPlayerName();
-  const history = await fetchHistoryFromBackend(name);
+  const history = await fetchHistoryFromBackend();
 
   if (!history.length) {
-    historyEl.innerHTML = '<div class="empty-state">No session history yet.</div>';
+    historyEl.innerHTML = '<p class="empty-state">No history yet.</p>';
     return;
   }
 
-  historyEl.innerHTML = history
-    .map((entry) => `
-      <div class="list-item">
-        <strong>${entry.wpm} WPM</strong>
-        <span class="list-meta">
-          ${escapeHtml(entry.name)} •
-          ${entry.accuracy}% accuracy •
-          ${entry.mistakes} mistakes •
-          ${new Date(entry.createdAt).toLocaleString()}
-        </span>
-      </div>
-    `)
-    .join('');
+  historyEl.innerHTML = history.map((entry) => `
+    <div class="list-row history-row">
+      <span class="list-name">${escapeHtml(entry.name)}</span>
+      <span class="list-score">${entry.wpm} WPM</span>
+      <span class="list-meta">${entry.accuracy}%</span>
+    </div>
+  `).join('');
 }
 
-/* =========================
-   TEST CONTROL
-========================= */
-
-async function startTest() {
-  resetStats();
-  await fetchQuote();
-}
-
-inputEl.addEventListener('input', async () => {
-  if (!testStarted && inputEl.value.length > 0) {
+function handleTypingInput() {
+  if (!testStarted) {
     testStarted = true;
     startTime = Date.now();
   }
 
+  const typed = inputEl.value;
   totalTyped++;
 
   const currentWord = quoteWords[currentWordIndex] || '';
-  const typedValue = inputEl.value;
-  const trimmedTyped = typedValue.trim();
-  const isLastWord = currentWordIndex === quoteWords.length - 1;
 
-  if (isLastWord && trimmedTyped === currentWord) {
-    updateWordHighlight();
-    updateLiveStats();
-    updatePlayerProgressByWords();
-    await finishTest();
-    return;
-  }
+  if (typed.endsWith(' ')) {
+    const typedWord = typed.trim();
 
-  if (typedValue.endsWith(' ')) {
-    if (trimmedTyped === currentWord) {
+    if (typedWord === currentWord) {
       currentWordIndex++;
       inputEl.value = '';
 
       if (currentWordIndex >= quoteWords.length) {
-        await finishTest();
+        finishTest();
         return;
       }
-
-      renderQuote();
     } else {
       totalMistakes++;
     }
   }
 
-  updateWordHighlight();
   updateLiveStats();
+  updateWordHighlight();
   updatePlayerProgressByWords();
-});
 
-startBtn.addEventListener('click', startTest);
-restartBtn.addEventListener('click', startTest);
+  const lastWord = quoteWords[currentWordIndex];
+  const cleanTyped = inputEl.value.trim();
 
-window.addEventListener('resize', () => {
-  updatePlayerProgressByWords();
-});
+  if (
+    currentWordIndex === quoteWords.length - 1 &&
+    cleanTyped === lastWord
+  ) {
+    finishTest();
+  }
+}

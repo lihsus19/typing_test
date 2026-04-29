@@ -2,6 +2,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
 const dotenv = require('dotenv');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 
 dotenv.config();
 
@@ -9,8 +12,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
 const QUOTE_API_KEY = process.env.QUOTE_API_KEY;
+const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret';
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 mongoose.connect(MONGODB_URI)
@@ -21,7 +26,34 @@ mongoose.connect(MONGODB_URI)
     console.error('MongoDB connection error:', error.message);
   });
 
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 20
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true
+  },
+  passwordHash: {
+    type: String,
+    required: true
+  }
+}, {
+  timestamps: true
+});
+
 const scoreSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   name: {
     type: String,
     required: true,
@@ -63,6 +95,7 @@ const scoreSchema = new mongoose.Schema({
   }
 });
 
+const User = mongoose.model('User', userSchema);
 const Score = mongoose.model('Score', scoreSchema);
 
 const fallbackQuotes = [
@@ -91,7 +124,7 @@ function getRandomFallbackQuote() {
 function buildLongFallbackQuote(minWords = 100) {
   let longQuote = '';
   while (getWordCount(longQuote) < minWords) {
-    longQuote += ' ' + getRandomFallbackQuote();
+    longQuote += ` ${getRandomFallbackQuote()}`;
   }
   return longQuote.trim();
 }
@@ -100,6 +133,16 @@ function getLongChance(difficulty) {
   if (difficulty === 'hard') return 0.55;
   if (difficulty === 'medium') return 0.4;
   return 0.1;
+}
+
+function getUserFromToken(req) {
+  try {
+    const token = req.cookies.token;
+    if (!token) return null;
+    return jwt.verify(token, JWT_SECRET);
+  } catch {
+    return null;
+  }
 }
 
 async function fetchSingleApiQuote() {
@@ -122,6 +165,151 @@ async function fetchSingleApiQuote() {
   return data[0].quote.trim();
 }
 
+/* =========================
+   AUTH ROUTES
+========================= */
+
+app.post('/api/auth/signup', async (req, res) => {
+  try {
+    const name = sanitizeName(req.body.name);
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '').trim();
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'All fields are required.' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ error: 'Email already in use.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      name,
+      email,
+      passwordHash
+    });
+
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        name: user.name,
+        email: user.email
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false
+    });
+
+    res.status(201).json({
+      message: 'Account created successfully.',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    console.error('Signup error:', error.message);
+    res.status(500).json({ error: 'Failed to sign up.' });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '').trim();
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required.' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        name: user.name,
+        email: user.email
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false
+    });
+
+    res.json({
+      message: 'Login successful.',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error.message);
+    res.status(500).json({ error: 'Failed to log in.' });
+  }
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('token');
+  res.json({ message: 'Logged out.' });
+});
+
+app.get('/api/auth/me', async (req, res) => {
+  try {
+    const decoded = getUserFromToken(req);
+
+    if (!decoded) {
+      return res.json({ user: null });
+    }
+
+    const user = await User.findById(decoded.userId).select('_id name email');
+
+    if (!user) {
+      return res.json({ user: null });
+    }
+
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    res.json({ user: null });
+  }
+});
+
+/* =========================
+   QUOTE ROUTE
+========================= */
+
 app.get('/api/quote', async (req, res) => {
   const difficulty = ['easy', 'medium', 'hard'].includes(req.query.difficulty)
     ? req.query.difficulty
@@ -137,7 +325,7 @@ app.get('/api/quote', async (req, res) => {
     } else {
       while (getWordCount(quote) < 100) {
         const nextQuote = await fetchSingleApiQuote();
-        quote += ' ' + nextQuote;
+        quote += ` ${nextQuote}`;
       }
       quote = quote.trim();
     }
@@ -163,6 +351,10 @@ app.get('/api/quote', async (req, res) => {
   }
 });
 
+/* =========================
+   SCORE ROUTES
+========================= */
+
 app.post('/api/scores', async (req, res) => {
   try {
     const {
@@ -175,6 +367,7 @@ app.post('/api/scores', async (req, res) => {
     } = req.body;
 
     const cleanName = sanitizeName(name);
+    const authUser = getUserFromToken(req);
 
     if (
       typeof wpm !== 'number' ||
@@ -186,12 +379,20 @@ app.post('/api/scores', async (req, res) => {
       return res.status(400).json({ error: 'Invalid score data.' });
     }
 
-    if (wpm < 0 || wpm > 250 || accuracy < 0 || accuracy > 100 || mistakes < 0 || words < 1) {
+    if (
+      wpm < 0 ||
+      wpm > 250 ||
+      accuracy < 0 ||
+      accuracy > 100 ||
+      mistakes < 0 ||
+      words < 1
+    ) {
       return res.status(400).json({ error: 'Score values out of range.' });
     }
 
     const score = new Score({
-      name: cleanName,
+      userId: authUser ? authUser.userId : null,
+      name: authUser ? sanitizeName(authUser.name) : cleanName,
       wpm,
       accuracy,
       mistakes,
@@ -225,11 +426,20 @@ app.get('/api/leaderboard', async (req, res) => {
   }
 });
 
-app.get('/api/history/:name', async (req, res) => {
+app.get('/api/history/me', async (req, res) => {
   try {
-    const name = sanitizeName(req.params.name);
+    const authUser = getUserFromToken(req);
 
-    const history = await Score.find({ name })
+    if (authUser?.userId) {
+      const history = await Score.find({ userId: authUser.userId })
+        .sort({ createdAt: -1 })
+        .limit(8)
+        .lean();
+
+      return res.json(history);
+    }
+
+    const history = await Score.find({ name: 'Guest' })
       .sort({ createdAt: -1 })
       .limit(8)
       .lean();
@@ -241,11 +451,15 @@ app.get('/api/history/:name', async (req, res) => {
   }
 });
 
-app.get('/api/stats/:name', async (req, res) => {
+app.get('/api/stats/me', async (req, res) => {
   try {
-    const name = sanitizeName(req.params.name);
+    const authUser = getUserFromToken(req);
 
-    const scores = await Score.find({ name }).lean();
+    const query = authUser?.userId
+      ? { userId: authUser.userId }
+      : { name: 'Guest' };
+
+    const scores = await Score.find(query).lean();
 
     if (!scores.length) {
       return res.json({
@@ -255,7 +469,7 @@ app.get('/api/stats/:name', async (req, res) => {
       });
     }
 
-    const bestWPM = Math.max(...scores.map(score => score.wpm));
+    const bestWPM = Math.max(...scores.map((score) => score.wpm));
     const averageWPM = Math.round(
       scores.reduce((sum, score) => sum + score.wpm, 0) / scores.length
     );
@@ -278,4 +492,3 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-

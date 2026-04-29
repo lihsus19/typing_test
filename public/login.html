@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FastFinger Account</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container auth-container">
+    <header class="hero auth-hero">
+      <div>
+        <h1>FastFinger Account</h1>
+        <p class="subtitle">Login, create an account, or continue as guest.</p>
+      </div>
+
+      <div class="account-area">
+        <a href="index.html" class="back-link">← Back</a>
+      </div>
+    </header>
+
+    <section class="auth-grid">
+      <div class="panel auth-panel">
+        <h2>Login</h2>
+
+        <label class="auth-label" for="loginEmail">Email</label>
+        <input id="loginEmail" class="auth-input" type="email" placeholder="Enter your email" autocomplete="email" />
+
+        <label class="auth-label" for="loginPassword">Password</label>
+        <input id="loginPassword" class="auth-input" type="password" placeholder="Enter your password" autocomplete="current-password" />
+
+        <button id="loginBtn" type="button">Login</button>
+      </div>
+
+      <div class="panel auth-panel">
+        <h2>Sign Up</h2>
+
+        <label class="auth-label" for="signupName">Username</label>
+        <input id="signupName" class="auth-input" type="text" maxlength="20" placeholder="Choose a username" autocomplete="username" />
+
+        <label class="auth-label" for="signupEmail">Email</label>
+        <input id="signupEmail" class="auth-input" type="email" placeholder="Enter your email" autocomplete="email" />
+
+        <label class="auth-label" for="signupPassword">Password</label>
+        <input id="signupPassword" class="auth-input" type="password" placeholder="Create a password" autocomplete="new-password" />
+
+        <button id="signupBtn" type="button">Create Account</button>
+      </div>
+
+      <div class="panel auth-panel guest-panel">
+        <h2>Guest Mode</h2>
+        <p class="subtitle">You can still play without an account.</p>
+        <button id="guestBtn" type="button">Continue as Guest</button>
+      </div>
+    </section>
+
+    <p id="authMessage" class="auth-message" aria-live="polite"></p>
+  </main>
+
+  <script src="auth.js"></script>
+</body>
+</html>

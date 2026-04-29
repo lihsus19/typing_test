@@ -367,9 +367,9 @@ h1 {
 
 .buttons {
   display: flex;
-  justify-content: center;
   gap: 12px;
-  flex-wrap: wrap;
+  justify-content: center;
+  margin: 20px 0 30px; 
 }
 
 button {
@@ -445,3 +445,259 @@ button:focus-visible {
     flex-direction: column;
   }
 } 
+.account-area {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.account-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+
+  display: flex;              
+  align-items: center;
+  justify-content: center;
+
+  font-size: 26px;            
+  line-height: 1;            
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.account-btn:hover,
+.account-btn:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.player-status {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.auth-container {
+  max-width: 1100px;
+}
+
+.auth-hero {
+  align-items: center;
+}
+
+.auth-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.auth-panel {
+  padding: 20px;
+}
+
+.auth-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin: 0 0 8px;
+}
+
+.auth-input {
+  width: 100%;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  outline: none;
+  transition: 0.2s ease;
+  margin-bottom: 14px;
+}
+
+.auth-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.18);
+}
+
+.auth-panel button,
+.buttons button {
+  border: none;
+  border-radius: 14px;
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: white;
+  transition: 0.2s ease;
+}
+
+.auth-panel button:hover,
+.auth-panel button:focus-visible,
+.buttons button:hover,
+.buttons button:focus-visible {
+  transform: translateY(-1px);
+}
+
+.guest-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.auth-message {
+  margin-top: 18px;
+  min-height: 24px;
+  font-weight: 700;
+}
+
+.error-text {
+  color: #fca5a5;
+}
+
+.success-text {
+  color: #86efac;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
+  font-weight: 700;
+  transition: 0.2s ease;
+}
+
+.back-link:hover,
+.back-link:focus-visible {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.list-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.list-row {
+  display: grid;
+  grid-template-columns: 60px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+}
+
+.history-row {
+  grid-template-columns: 1fr auto auto;
+}
+
+.list-rank,
+.list-meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.list-name {
+  font-weight: 700;
+}
+
+.list-score {
+  font-weight: 800;
+}
+
+.empty-state {
+  color: var(--muted);
+  margin: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .auth-grid,
+  .panels-grid,
+  .top-controls {
+    grid-template-columns: 1fr;
+  }
+
+  #stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .account-area {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 14px;
+  }
+
+  .container {
+    padding: 18px;
+  }
+
+  h1 {
+    font-size: 32px;
+  }
+
+  #quote {
+    font-size: 18px;
+    line-height: 1.7;
+  }
+
+  #stats {
+    grid-template-columns: 1fr;
+  }
+
+  .list-row,
+  .history-row {
+    grid-template-columns: 1fr;
+  }
+}
+.chart-container {
+  margin: 20px 0;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  height: 320px;
+}
