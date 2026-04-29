@@ -15,3 +15,9 @@ Login:
 
 Notes:
 - MongoDB connection required (see .env file)
+
+Git hub Update
+
+git add .
+git commit -m "update"
+git push
