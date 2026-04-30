@@ -1,4 +1,4 @@
-[# typing_test](https://lihsus19.github.io/typing_test/) note this is not going to work!
+[# typing_test](https://lihsus19.github.io/typing_test/) note this is not going to work! if i need to make onlline i could.
 Project: FastFinger Typing System
 
 Setup Instructions:
